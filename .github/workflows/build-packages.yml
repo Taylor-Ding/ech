@@ -1,0 +1,131 @@
+name: build-packages
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.runs_on }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: windows-amd64
+            runs_on: windows-latest
+            rust_target: x86_64-pc-windows-msvc
+            msvc_arch: x64
+            goos: windows
+            goarch: amd64
+            exe_ext: .exe
+
+          - name: windows-arm64
+            runs_on: windows-latest
+            rust_target: aarch64-pc-windows-msvc
+            msvc_arch: arm64
+            goos: windows
+            goarch: arm64
+            exe_ext: .exe
+
+          - name: macos-amd64
+            runs_on: macos-13
+            rust_target: x86_64-apple-darwin
+            goos: darwin
+            goarch: amd64
+            exe_ext: ""
+
+          - name: macos-arm64
+            runs_on: macos-14
+            rust_target: aarch64-apple-darwin
+            goos: darwin
+            goarch: arm64
+            exe_ext: ""
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust_target }}
+
+      - name: Setup MSVC (Windows)
+        if: startsWith(matrix.name, 'windows')
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: ${{ matrix.msvc_arch }}
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            ech-gui/src-tauri -> target
+
+      - name: Build ech-workers (Go)
+        shell: bash
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: "0"
+        run: |
+          set -euo pipefail
+          mkdir -p dist/bin
+          go mod download
+          go build -trimpath -ldflags "-s -w" -o "dist/bin/ech-workers${{ matrix.exe_ext }}" ./ech-workers.go
+
+      - name: Build ech-gui (Rust)
+        working-directory: ech-gui/src-tauri
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo build --release --locked --target ${{ matrix.rust_target }}
+
+      - name: Package zip
+        shell: bash
+        env:
+          PACKAGE_NAME: ${{ matrix.name }}
+        run: |
+          set -euo pipefail
+
+          mkdir -p "dist/${PACKAGE_NAME}"
+
+          cp "dist/bin/ech-workers${{ matrix.exe_ext }}" "dist/${PACKAGE_NAME}/ech-workers${{ matrix.exe_ext }}"
+          cp "ech-gui/src-tauri/target/${{ matrix.rust_target }}/release/ech-gui${{ matrix.exe_ext }}" "dist/${PACKAGE_NAME}/ech-gui${{ matrix.exe_ext }}"
+
+          # Optional data files used by ech-workers (bypass_cn routing)
+          cp "ech-gui/src-tauri/chn_ip.txt" "dist/${PACKAGE_NAME}/" || true
+          cp "ech-gui/src-tauri/chn_ip_v6.txt" "dist/${PACKAGE_NAME}/" || true
+
+          if command -v python >/dev/null 2>&1; then PYTHON=python; else PYTHON=python3; fi
+          $PYTHON - <<'PY'
+          import os
+          import pathlib
+          import shutil
+
+          name = os.environ["PACKAGE_NAME"]
+          dist = pathlib.Path("dist")
+          zip_path = dist / f"{name}.zip"
+
+          if zip_path.exists():
+              zip_path.unlink()
+
+          shutil.make_archive(str(zip_path)[:-4], "zip", root_dir=dist, base_dir=name)
+          print(f"Created {zip_path}")
+          PY
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.name }}
+          path: dist/${{ matrix.name }}.zip
+          if-no-files-found: error
