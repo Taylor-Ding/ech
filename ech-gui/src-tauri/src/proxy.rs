@@ -1,8 +1,6 @@
 //! System proxy control for ECH Workers
 //! Supports macOS (networksetup) and Windows (registry)
 
-use std::process::Command;
-
 /// Set system SOCKS proxy
 pub fn set_system_proxy(enabled: bool, listen_addr: &str) -> Result<String, String> {
     if cfg!(target_os = "macos") {
@@ -29,6 +27,7 @@ pub fn get_proxy_status() -> bool {
 
 #[cfg(target_os = "macos")]
 fn set_macos_proxy(enabled: bool, listen_addr: &str) -> Result<String, String> {
+    use std::process::Command;
     // Parse address
     let (host, port) = parse_listen_addr(listen_addr)?;
     
@@ -89,6 +88,8 @@ fn set_macos_proxy(enabled: bool, listen_addr: &str) -> Result<String, String> {
 
 #[cfg(target_os = "macos")]
 fn get_macos_proxy_status() -> bool {
+    use std::process::Command;
+
     // Check Wi-Fi service (most common)
     let output = Command::new("networksetup")
         .args(["-getsocksfirewallproxy", "Wi-Fi"])
@@ -170,12 +171,11 @@ fn notify_windows_proxy_change() {
 
     #[cfg(target_arch = "aarch64")]
     {
-        use windows::core::PWSTR;
         use windows::Win32::Networking::WinInet::*;
 
         unsafe {
-            InternetSetOptionW(None, INTERNET_OPTION_SETTINGS_CHANGED, None, 0);
-            InternetSetOptionW(None, INTERNET_OPTION_REFRESH, None, 0);
+            let _ = InternetSetOptionW(None, INTERNET_OPTION_SETTINGS_CHANGED, None, 0);
+            let _ = InternetSetOptionW(None, INTERNET_OPTION_REFRESH, None, 0);
         }
     }
 }

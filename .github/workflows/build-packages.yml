@@ -70,13 +70,7 @@ jobs:
         shell: powershell
         run: |
           # Set environment variables to ensure Rust uses correct MSVC linker
-          echo "RUSTFLAGS=-C link-args=/DEBUG:NONE" >> $env:GITHUB_ENV
-
-          # Ensure MSVC linker is used instead of Git's link.exe
-          $pathParts = $env:PATH -split ';'
-          $filteredParts = $pathParts | Where-Object { $_ -notlike "*Git\usr\bin*" }
-          $newPath = $filteredParts -join ';'
-          echo "PATH=$newPath" >> $env:GITHUB_ENV
+          echo "RUSTFLAGS=-C link-args=/DEBUG:NONE -C linker=link.exe" >> $env:GITHUB_ENV
 
       - name: Rust cache
         uses: Swatinem/rust-cache@v2
