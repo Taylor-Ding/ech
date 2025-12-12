@@ -99,7 +99,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cargo build --release --locked --target ${{ matrix.rust_target }}
+          cargo build --release --target ${{ matrix.rust_target }}
 
       - name: Package zip
         shell: bash
