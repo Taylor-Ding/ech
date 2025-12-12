@@ -93,12 +93,24 @@ jobs:
           go mod download
           go build -trimpath -ldflags "-s -w" -o "dist/bin/ech-workers${{ matrix.exe_ext }}" ./ech-workers.go
 
-      - name: Build ech-gui (Rust)
-        working-directory: ech-gui/src-tauri
+      - name: Install Tauri CLI
         shell: bash
         run: |
           set -euo pipefail
+          cargo install tauri-cli --version "^2.0" --locked
+
+      - name: Build ech-gui (Tauri)
+        working-directory: ech-gui
+        shell: bash
+        run: |
+          set -euo pipefail
+          # First build the Rust lib
+          cd src-tauri
           cargo build --release --target ${{ matrix.rust_target }}
+          cd ..
+
+          # Then use Tauri CLI to build the app
+          cargo tauri build --target ${{ matrix.rust_target }}
 
       - name: Package zip
         shell: bash
@@ -110,7 +122,33 @@ jobs:
           mkdir -p "dist/${PACKAGE_NAME}"
 
           cp "dist/bin/ech-workers${{ matrix.exe_ext }}" "dist/${PACKAGE_NAME}/ech-workers${{ matrix.exe_ext }}"
-          cp "ech-gui/src-tauri/target/${{ matrix.rust_target }}/release/ech-gui${{ matrix.exe_ext }}" "dist/${PACKAGE_NAME}/ech-gui${{ matrix.exe_ext }}"
+
+          # Tauri builds apps in src-tauri/target/{target}/release/bundle
+          BUNDLE_DIR="ech-gui/src-tauri/target/${{ matrix.rust_target }}/release/bundle"
+
+          # For different platforms
+          if [[ "${{ matrix.name }}" == *"windows"* ]]; then
+            # Windows: Look for MSI or exe in the msi or nsis bundle directory
+            if [ -d "$BUNDLE_DIR/msi" ]; then
+              cp "$BUNDLE_DIR/msi"/*.msi "dist/${PACKAGE_NAME}/" || true
+            fi
+            if [ -d "$BUNDLE_DIR/nsis" ]; then
+              cp "$BUNDLE_DIR/nsis"/*.exe "dist/${PACKAGE_NAME}/ech-gui${{ matrix.exe_ext }}" || true
+            fi
+          elif [[ "${{ matrix.name }}" == *"macos"* ]]; then
+            # macOS: Look for app bundle
+            if [ -d "$BUNDLE_DIR/macos" ]; then
+              cp -r "$BUNDLE_DIR/macos"/*.app "dist/${PACKAGE_NAME}/" || true
+            fi
+          else
+            # Linux: Look for deb/AppImage
+            if [ -d "$BUNDLE_DIR/deb" ]; then
+              cp "$BUNDLE_DIR/deb"/*.deb "dist/${PACKAGE_NAME}/" || true
+            fi
+            if [ -d "$BUNDLE_DIR/appimage" ]; then
+              cp "$BUNDLE_DIR/appimage"/*.AppImage "dist/${PACKAGE_NAME}/" || true
+            fi
+          fi
 
           # Optional data files used by ech-workers (bypass_cn routing)
           cp "ech-gui/src-tauri/chn_ip.txt" "dist/${PACKAGE_NAME}/" || true
