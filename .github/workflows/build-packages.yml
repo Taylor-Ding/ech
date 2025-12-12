@@ -31,14 +31,14 @@ jobs:
             exe_ext: .exe
 
           - name: macos-amd64
-            runs_on: macos-13
+            runs_on: macos-14
             rust_target: x86_64-apple-darwin
             goos: darwin
             goarch: amd64
             exe_ext: ""
 
           - name: macos-arm64
-            runs_on: macos-14
+            runs_on: macos-15
             rust_target: aarch64-apple-darwin
             goos: darwin
             goarch: arm64
@@ -64,6 +64,17 @@ jobs:
         uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: ${{ matrix.msvc_arch }}
+
+      - name: Configure Rust for Windows
+        if: startsWith(matrix.name, 'windows')
+        shell: powershell
+        run: |
+          # Set environment variables to ensure Rust uses correct MSVC linker
+          echo "RUSTFLAGS=-C link-args=/DEBUG:NONE" >> $env:GITHUB_ENV
+
+          # Ensure MSVC linker is used instead of Git's link.exe
+          $newPath = $env:PATH -split ';' | Where-Object { $_ -notlike "*Git\usr\bin*" } -join ';'
+          echo "PATH=$newPath" >> $env:GITHUB_ENV
 
       - name: Rust cache
         uses: Swatinem/rust-cache@v2

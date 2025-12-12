@@ -157,12 +157,26 @@ fn set_windows_proxy(enabled: bool, listen_addr: &str) -> Result<String, String>
 
 #[cfg(target_os = "windows")]
 fn notify_windows_proxy_change() {
-    use std::ptr::null_mut;
-    use winapi::um::wininet::{InternetSetOptionW, INTERNET_OPTION_SETTINGS_CHANGED, INTERNET_OPTION_REFRESH};
-    
-    unsafe {
-        InternetSetOptionW(null_mut(), INTERNET_OPTION_SETTINGS_CHANGED, null_mut(), 0);
-        InternetSetOptionW(null_mut(), INTERNET_OPTION_REFRESH, null_mut(), 0);
+    #[cfg(target_arch = "x86_64")]
+    {
+        use std::ptr::null_mut;
+        use winapi::um::wininet::{InternetSetOptionW, INTERNET_OPTION_SETTINGS_CHANGED, INTERNET_OPTION_REFRESH};
+
+        unsafe {
+            InternetSetOptionW(null_mut(), INTERNET_OPTION_SETTINGS_CHANGED, null_mut(), 0);
+            InternetSetOptionW(null_mut(), INTERNET_OPTION_REFRESH, null_mut(), 0);
+        }
+    }
+
+    #[cfg(target_arch = "aarch64")]
+    {
+        use windows::core::PWSTR;
+        use windows::Win32::Networking::WinInet::*;
+
+        unsafe {
+            InternetSetOptionW(None, INTERNET_OPTION_SETTINGS_CHANGED, None, 0);
+            InternetSetOptionW(None, INTERNET_OPTION_REFRESH, None, 0);
+        }
     }
 }
 
