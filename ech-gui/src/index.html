@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ECH Workers</title>
+  
+  <!-- Unique Fonts: Orbitron (headers), JetBrains Mono (logs), Syncopate (buttons) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Orbitron:wght@400;600;700&family=Syncopate:wght@400;700&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Animated Background Grid -->
+  <div class="bg-grid"></div>
+  <div class="scanlines"></div>
+  
+  <!-- Main Container -->
+  <div class="container">
+    <!-- Header -->
+    <header class="header">
+      <div class="logo">
+        <span class="logo-icon">◈</span>
+        <h1>ECH Workers</h1>
+      </div>
+      <div class="version-badge" id="version-badge">v1.4</div>
+    </header>
+    
+    <!-- Server Management Section -->
+    <section class="panel server-panel" style="--delay: 0">
+      <div class="panel-header">
+        <span class="panel-icon">⬡</span>
+        <h2>服务器管理</h2>
+      </div>
+      <div class="panel-content">
+        <div class="server-controls">
+          <select id="server-select" class="select-input">
+            <option value="">加载中...</option>
+          </select>
+          <div class="btn-group">
+            <button class="btn btn-secondary" id="btn-add" title="新增">+</button>
+            <button class="btn btn-secondary" id="btn-rename" title="重命名">✎</button>
+            <button class="btn btn-danger" id="btn-delete" title="删除">✕</button>
+          </div>
+        </div>
+      </div>
+    </section>
+    
+    <!-- Core Configuration Section -->
+    <section class="panel config-panel" style="--delay: 1">
+      <div class="panel-header">
+        <span class="panel-icon">◉</span>
+        <h2>核心配置</h2>
+      </div>
+      <div class="panel-content">
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="server-addr">服务地址</label>
+            <input type="text" id="server-addr" class="text-input" placeholder="your-worker.workers.dev:443">
+          </div>
+          <div class="form-group">
+            <label for="listen-addr">监听地址</label>
+            <input type="text" id="listen-addr" class="text-input" placeholder="127.0.0.1:30000">
+          </div>
+        </div>
+      </div>
+    </section>
+    
+    <!-- Advanced Options Section -->
+    <section class="panel advanced-panel collapsed" style="--delay: 2">
+      <div class="panel-header toggle-panel" id="toggle-advanced">
+        <span class="panel-icon">⚙</span>
+        <h2>高级选项</h2>
+        <span class="expand-icon">▾</span>
+      </div>
+      <div class="panel-content collapsible">
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="token">身份令牌</label>
+            <input type="password" id="token" class="text-input" placeholder="可选">
+          </div>
+          <div class="form-group">
+            <label for="ip">优选 IP/域名</label>
+            <input type="text" id="ip" class="text-input" placeholder="saas.sin.fan">
+          </div>
+          <div class="form-group">
+            <label for="dns">DOH 服务器</label>
+            <input type="text" id="dns" class="text-input" placeholder="dns.alidns.com/dns-query">
+          </div>
+          <div class="form-group">
+            <label for="ech">ECH 域名</label>
+            <input type="text" id="ech" class="text-input" placeholder="cloudflare-ech.com">
+          </div>
+        </div>
+      </div>
+    </section>
+    
+    <!-- Routing Section -->
+    <section class="panel routing-panel" style="--delay: 3">
+      <div class="panel-header">
+        <span class="panel-icon">⇌</span>
+        <h2>分流设置</h2>
+      </div>
+      <div class="panel-content">
+        <div class="routing-options">
+          <label class="radio-card">
+            <input type="radio" name="routing" value="global">
+            <span class="radio-label">
+              <span class="radio-title">全局代理</span>
+              <span class="radio-desc">所有流量通过代理</span>
+            </span>
+          </label>
+          <label class="radio-card active">
+            <input type="radio" name="routing" value="bypass_cn" checked>
+            <span class="radio-label">
+              <span class="radio-title">🇨🇳 跳过大陆</span>
+              <span class="radio-desc">中国大陆直连</span>
+            </span>
+          </label>
+          <label class="radio-card">
+            <input type="radio" name="routing" value="none">
+            <span class="radio-label">
+              <span class="radio-title">不改变</span>
+              <span class="radio-desc">仅本地代理</span>
+            </span>
+          </label>
+        </div>
+      </div>
+    </section>
+    
+    <!-- Control Section -->
+    <section class="panel control-panel" style="--delay: 4">
+      <div class="control-buttons">
+        <button class="btn btn-primary btn-large" id="btn-start">
+          <span class="btn-icon">▶</span>
+          <span class="btn-text">启动代理</span>
+        </button>
+        <button class="btn btn-danger btn-large" id="btn-stop" disabled>
+          <span class="btn-icon">◼</span>
+          <span class="btn-text">停止</span>
+        </button>
+        <button class="btn btn-accent btn-large" id="btn-proxy" disabled>
+          <span class="btn-icon">⚡</span>
+          <span class="btn-text">设置系统代理</span>
+        </button>
+        <button class="btn btn-ghost" id="btn-save">
+          <span class="btn-icon">💾</span>
+          <span class="btn-text">保存配置</span>
+        </button>
+      </div>
+    </section>
+    
+    <!-- Log Section -->
+    <section class="panel log-panel" style="--delay: 5">
+      <div class="panel-header">
+        <span class="panel-icon">◧</span>
+        <h2>运行日志</h2>
+        <button class="btn btn-ghost btn-small" id="btn-clear-log">清空</button>
+      </div>
+      <div class="panel-content">
+        <div class="log-container" id="log-container">
+          <div class="log-entry system">[系统] ECH Workers GUI 已就绪</div>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+  <!-- Modal for dialogs -->
+  <div class="modal-overlay" id="modal-overlay">
+    <div class="modal" id="modal">
+      <div class="modal-header">
+        <h3 id="modal-title">对话框</h3>
+        <button class="btn btn-ghost btn-small" id="modal-close">✕</button>
+      </div>
+      <div class="modal-body">
+        <input type="text" id="modal-input" class="text-input" placeholder="">
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="modal-cancel">取消</button>
+        <button class="btn btn-primary" id="modal-confirm">确定</button>
+      </div>
+    </div>
+  </div>
+  
+  <script src="main.js"></script>
+</body>
+</html>
