@@ -65,12 +65,15 @@ jobs:
         with:
           arch: ${{ matrix.msvc_arch }}
 
-      - name: Configure Rust for Windows
+      - name: Fix Windows PATH
         if: startsWith(matrix.name, 'windows')
         shell: powershell
         run: |
-          # Set environment variables to ensure Rust uses correct MSVC linker
-          echo "RUSTFLAGS=-C link-args=/DEBUG:NONE -C linker=link.exe" >> $env:GITHUB_ENV
+          # Rename Git's link.exe to avoid conflicts
+          $gitLinkPath = "C:\Program Files\Git\usr\bin\link.exe"
+          if (Test-Path $gitLinkPath) {
+            Move-Item $gitLinkPath "$gitLinkPath.bak" -Force
+          }
 
       - name: Rust cache
         uses: Swatinem/rust-cache@v2
